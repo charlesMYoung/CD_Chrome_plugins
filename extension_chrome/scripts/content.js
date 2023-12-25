@@ -1,9 +1,10 @@
-console.log("hello world");
+let timeId = null;
+const iframeContent = () =>
+  document.getElementById("iframe").contentWindow.document;
+const getUrl = () => location.href;
 
 const getPaginationCount = () => {
-  const [pagination] = document
-    .getElementById("iframe")
-    .contentWindow.document.getElementsByClassName("pagination");
+  const [pagination] = iframeContent().getElementsByClassName("pagination");
   let total = 0;
   if (pagination) {
     const [countLabel] = pagination.children;
@@ -16,9 +17,7 @@ const getPaginationCount = () => {
 
 const clickPaginationNext = (pageNumber) => {
   console.log("clickPaginationNext>>>>", pageNumber);
-  const [pagination] = document
-    .getElementById("iframe")
-    .contentWindow.document.getElementsByClassName("pagination");
+  const [pagination] = iframeContent().getElementsByClassName("pagination");
   let total = 0;
   //处理上一页面
   pageNumber = pageNumber - 1;
@@ -39,9 +38,7 @@ const clickPaginationNext = (pageNumber) => {
 };
 
 const getTableList = () => {
-  const [tableDom] = document
-    .getElementById("iframe")
-    .contentWindow.document.getElementsByClassName("table_text");
+  const [tableDom] = iframeContent().getElementsByClassName("table_text");
   const rows = tableDom.rows;
   let tableContent = [];
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
@@ -72,23 +69,15 @@ const sleep = (timeout) => {
 
 const getPDFContent = () => {
   try {
-    const pdf_obj = document
-      .getElementById("iframe")
-      .contentWindow.document.getElementById("viewer");
+    const pdf_obj = iframeContent().getElementById("viewer");
     return pdf_obj.getElementsByClassName("textLayer")[0].innerText;
   } catch (e) {}
 
   return "";
 };
 
-let timeId = null;
-
-const getUrl = () => location.href;
-
-const pageCount = () => {
-  const numPagesDom = document
-    .getElementById("iframe")
-    .contentWindow.document.getElementById("numPages");
+const getPdfTotal = () => {
+  const numPagesDom = iframeContent().getElementById("numPages");
 
   if (numPagesDom) {
     const [, page] = numPagesDom.innerText.split("/");
@@ -101,26 +90,29 @@ const pageCount = () => {
   return 0;
 };
 
-const setPDFLastPage = async (clickClout) => {
+/**
+ *
+ * @param {*} clickClout
+ * @returns
+ */
+const clickPdfNextPage = async (clickClout) => {
   return new Promise((resolve) => {
     timeId = setTimeout(() => {
-      const [pageDownDom] = document
-        .getElementById("iframe")
-        .contentWindow.document.getElementsByClassName(
-          "toolbarButton pageDown"
-        );
+      const [pageDownDom] = iframeContent().getElementsByClassName(
+        "toolbarButton pageDown"
+      );
       if (pageDownDom) {
         pageDownDom.click();
       }
       resolve();
     }, 1500);
   }).then(() => {
-    if (clickClout >= pageCount()) {
+    if (clickClout >= getPdfTotal()) {
       clearTimeout(timeId);
       return Promise.resolve();
     }
     clickClout++;
-    return setPDFLastPage(clickClout);
+    return clickPdfNextPage(clickClout);
   });
 };
 
@@ -156,23 +148,20 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       });
       return true;
 
-    case "CLICK_NEXT_PAGE":
-      setPDFLastPage(1).then(() => {
-        sendResponse({
-          message: "success",
-          action,
-        });
-      });
-
-      return true;
-
-    case "GET_DETAIL":
+    case "GET_CONTENT":
+      sleep(1000);
+      await clickPdfNextPage(1);
+      console.log("done");
+      sleep(2000);
       const data = getContent();
-      sendResponse({
-        message: "success",
-        data,
-        action,
+      chrome.runtime.sendMessage({
+        action: "GET_CONTENT_DONE",
+        payload: {
+          tabId: payload,
+          data,
+        },
       });
+
       return true;
     default:
       break;
