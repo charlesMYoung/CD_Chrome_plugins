@@ -44,7 +44,7 @@ function App() {
     await batchSave(resultData);
     onChange(current, pageSize);
     setAlertInfo("抓取第" + page + "页, 完成！！");
-    if (stopListFlagRef.current && page >= 500) {
+    if (stopListFlagRef.current || page >= 500) {
       return;
     }
     page = page + 1;
@@ -58,9 +58,11 @@ function App() {
     setIsQueryDetail(true);
     const firstContent = await findFirsContentEmpty();
     if (firstContent) {
-      await chrome.tabs.create({
-        url: firstContent.originalLink,
-      });
+      const result = await sendMessage(
+        "JUMP_DETAIL",
+        firstContent.originalLink
+      );
+      console.log("result", result);
     }
   };
 
@@ -71,15 +73,14 @@ function App() {
   };
 
   const onMessageByGetContentCallback = async (payload) => {
-    const { data, tabId } = payload;
+    const { data } = payload;
     const { bidLink, content } = data;
 
     await updatedContentByLink(bidLink, content);
 
     await onChange(current, pageSize);
     await sleep(2000);
-    await chrome.tabs.remove(tabId);
-    await sleep(2000);
+
     if (!stopDetailFlagRef.current) {
       openEmptyContentDetail();
     }

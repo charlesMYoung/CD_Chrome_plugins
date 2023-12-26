@@ -5,7 +5,11 @@
   "version": "1.0",
   "content_scripts": [
     {
-      "js": ["scripts/content.js"],
+      "js": [
+        "scripts/tripledes.js",
+        "scripts/mode-ecb.js",
+        "scripts/content.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ],
