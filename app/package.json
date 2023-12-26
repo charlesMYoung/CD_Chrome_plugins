@@ -13,7 +13,8 @@
     "antd": "^5.12.5",
     "localforage": "^1.10.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/xlsx-0.20.1.tgz"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

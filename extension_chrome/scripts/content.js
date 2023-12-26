@@ -116,6 +116,10 @@ const clickPdfNextPage = async (clickClout) => {
   });
 };
 
+/**
+ * 获取内容
+ * @returns
+ */
 const getContent = () => {
   const content = getPDFContent() || "未解析到...";
   return {

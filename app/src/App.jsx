@@ -1,14 +1,6 @@
 import "./App.css";
-import { useEffect, useState } from "react";
-import {
-  Button,
-  Table,
-  message as Message,
-  Alert,
-  Tag,
-  Card,
-  Space,
-} from "antd";
+import { useEffect, useRef, useState } from "react";
+import { Button, Table, message, Alert, Tag, Card } from "antd";
 import {
   sendMessage,
   sleep,
@@ -17,12 +9,18 @@ import {
   getTableList,
   updatedContentByLink,
   findFirsContentEmpty,
+  getAllData,
 } from "./utils";
+import { exportTableData } from "./sheet";
 import { clear } from "localforage";
 import { usePage } from "./usePage";
 
 function App() {
-  const [message, setMessage] = useState("");
+  const [alertInfo, setAlertInfo] = useState("");
+  const [isQueryList, setIsQueryList] = useState(false);
+  const stopListFlagRef = useRef(false);
+  const stopDetailFlagRef = useRef(false);
+  const [isQueryDetail, setIsQueryDetail] = useState(false);
 
   const {
     data,
@@ -38,25 +36,26 @@ function App() {
   });
 
   const queryListHandle = async (page) => {
-    setMessage("正在抓取第" + page + "页，数据列表");
+    setAlertInfo("正在抓取第" + page + "页，数据列表");
     await sleep(4000);
     const resp = await sendMessage("GET_LIST", "");
 
     const [, ...resultData] = resp.data;
     await batchSave(resultData);
     onChange(current, pageSize);
-
-    setMessage("抓取第" + page + "页, 完成！！");
-    if (page >= 3) {
+    setAlertInfo("抓取第" + page + "页, 完成！！");
+    if (stopListFlagRef.current) {
       return;
     }
     page = page + 1;
     await sendMessage("JUMP_PAGE", page);
-    setMessage("跳转到" + page + "页");
+    setAlertInfo("跳转到" + page + "页");
     return queryListHandle(page);
   };
 
-  const getDetailInfo = async () => {
+  const openEmptyContentDetail = async () => {
+    stopDetailFlagRef.current = false;
+    setIsQueryDetail(true);
     const firstContent = await findFirsContentEmpty();
     if (firstContent) {
       await chrome.tabs.create({
@@ -68,7 +67,7 @@ function App() {
   const clearData = async () => {
     await clear();
     await onChange(current, pageSize);
-    Message.success("清除成功");
+    message.success("清除成功");
   };
 
   const onMessageByGetContentCallback = async (payload) => {
@@ -78,37 +77,73 @@ function App() {
     await updatedContentByLink(bidLink, content);
 
     await onChange(current, pageSize);
-    await sleep(1000);
+    await sleep(2000);
     await chrome.tabs.remove(tabId);
-    getDetailInfo();
+    await sleep(2000);
+    if (!stopDetailFlagRef.current) {
+      openEmptyContentDetail();
+    }
   };
 
   useEffect(() => {
     onMessageByGetContent(onMessageByGetContentCallback);
   }, []);
 
-  const exportData = () => {};
+  const exportData = async () => {
+    message.info("正在导出...");
+    const data = await getAllData();
+    message.success("导出成功！");
+    exportTableData(data);
+  };
 
   return (
     <>
-      {message ? <Alert message={message} type="success" /> : null}
+      {alertInfo ? <Alert message={alertInfo} type="success" /> : null}
       <Card title="数据抓取插件">
-        <Button
-          onClick={() => {
-            queryListHandle(1);
-          }}
-          size="small"
-        >
-          抓取列表
-        </Button>
-        <Button onClick={getDetailInfo} size="small">
-          抓取详情数据
-        </Button>
+        {isQueryList ? (
+          <Button
+            onClick={() => {
+              setIsQueryList(false);
+              stopListFlagRef.current = true;
+            }}
+            size="small"
+          >
+            暂停抓取列表
+          </Button>
+        ) : (
+          <Button
+            onClick={() => {
+              setIsQueryList(true);
+              stopListFlagRef.current = false;
+              queryListHandle(1);
+            }}
+            size="small"
+          >
+            抓取列表
+          </Button>
+        )}
+
+        {isQueryDetail ? (
+          <Button
+            onClick={() => {
+              stopDetailFlagRef.current = true;
+              setIsQueryDetail(false);
+            }}
+            size="small"
+          >
+            暂停抓取详情数据
+          </Button>
+        ) : (
+          <Button onClick={openEmptyContentDetail} size="small">
+            抓取详情数据
+          </Button>
+        )}
+
         <Button onClick={clearData} danger size="small">
           清除数据
         </Button>
         <Button onClick={exportData} type="primary" size="small">
-          导出数据
+          导出Excel
         </Button>
       </Card>
       <Table
@@ -128,9 +163,32 @@ function App() {
             width: 100,
             render: (data) => {
               return data ? (
-                <Tag color="green">有</Tag>
+                <>
+                  {data === "未解析到..." ? (
+                    <Tag color="warning">未解析到...</Tag>
+                  ) : (
+                    <Tag color="green">有</Tag>
+                  )}
+                </>
               ) : (
                 <Tag color="magenta">无</Tag>
+              );
+            },
+          },
+          {
+            title: "原文链接",
+            dataIndex: "originalLink",
+            render: (data) => {
+              return (
+                <a
+                  onClick={async () => {
+                    await chrome.tabs.create({
+                      url: data,
+                    });
+                  }}
+                >
+                  跳转
+                </a>
               );
             },
           },

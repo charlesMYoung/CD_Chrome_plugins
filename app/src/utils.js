@@ -92,10 +92,12 @@ export const findFirsContentEmpty = async () => {
   });
 };
 
-export const getAllData = () => {
-  return iterate((value) => {
-    return value;
+export const getAllData = async () => {
+  let data = [];
+  await iterate((value) => {
+    data.push(value);
   });
+  return data;
 };
 
 export const batchSave = async (resultData) => {
@@ -106,9 +108,10 @@ export const batchSave = async (resultData) => {
         originalLink: item[0],
         bidName: item[1],
         industry: item[2],
-        sourceChannel: item[3],
-        releaseTime: item[4],
-        leftBidOpenTime: item[5],
+        district: item[3],
+        sourceChannel: item[4],
+        releaseTime: item[5],
+        leftBidOpenTime: item[6],
         content: "",
       });
     });
