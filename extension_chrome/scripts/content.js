@@ -1,4 +1,23 @@
 let timeId = null;
+
+/**
+ * dates=300&categoryId=88&showStatus=1&page=501&area=110000
+ * @param {*} params
+ * @returns
+ */
+const getQueryListUrl = (params) => {
+  const queryParams = Object.keys(params).reduce((total, cur, index) => {
+    if (index === 0) {
+      return `?${cur}=${params[cur]}`;
+    }
+    return `${total}&${cur}=${params[cur]}`;
+  }, "");
+
+  return `https://bulletin.cebpubservice.com/xxfbcmses/search/bulletin.html${queryParams}`;
+};
+
+const getDetailUrl = () => {};
+
 const iframeContent = () =>
   document.getElementById("iframe").contentWindow.document;
 const getUrl = () => location.href;
@@ -17,28 +36,19 @@ const getPaginationCount = () => {
 
 const clickPaginationNext = (pageNumber) => {
   console.log("clickPaginationNext>>>>", pageNumber);
-  const [pagination] = iframeContent().getElementsByClassName("pagination");
-  let total = 0;
-  //处理上一页面
-  pageNumber = pageNumber - 1;
-  if (pagination) {
-    if (pageNumber === 1) {
-      const [, nextButton] = pagination.children;
-      if (nextButton) {
-        nextButton.click();
-      }
-    } else {
-      const [, , , nextButton] = pagination.children;
-      if (nextButton) {
-        nextButton.click();
-      }
-    }
-  }
-  return total;
+
+  const queryUrl = getQueryListUrl({
+    dates: 300,
+    categoryId: 88,
+    showStatus: 1,
+    page: pageNumber,
+  });
+
+  document.getElementById("iframe").src = queryUrl;
 };
 
-const getTableList = () => {
-  const [tableDom] = iframeContent().getElementsByClassName("table_text");
+const getTableList = (browserRootDom) => {
+  const [tableDom] = browserRootDom.getElementsByClassName("table_text");
   const rows = tableDom.rows;
   let tableContent = [];
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
@@ -135,13 +145,13 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 
   switch (action) {
     case "GET_LIST":
-      const tableData = getTableList();
+      const tableData = getTableList(iframeContent());
       sendResponse({
         data: tableData,
         message: "success",
         action,
       });
-      return true;
+      break;
     case "JUMP_PAGE":
       const pageNumber = payload;
       clickPaginationNext(pageNumber);

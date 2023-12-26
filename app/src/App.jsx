@@ -44,7 +44,7 @@ function App() {
     await batchSave(resultData);
     onChange(current, pageSize);
     setAlertInfo("抓取第" + page + "页, 完成！！");
-    if (stopListFlagRef.current) {
+    if (stopListFlagRef.current && page >= 500) {
       return;
     }
     page = page + 1;
