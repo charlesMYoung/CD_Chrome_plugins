@@ -1,35 +1,50 @@
 import "./App.css";
 import { useEffect, useState } from "react";
-import { Button, Table, message as Message, Alert, Tag } from "antd";
+import {
+  Button,
+  Table,
+  message as Message,
+  Alert,
+  Tag,
+  Card,
+  Space,
+} from "antd";
 import {
   sendMessage,
   sleep,
   onMessageByGetContent,
-  coverMap,
-  convertList,
+  batchSave,
+  getTableList,
+  updatedContentByLink,
+  findFirsContentEmpty,
 } from "./utils";
-import { getItem, setItem, clear } from "localforage";
+import { clear } from "localforage";
+import { usePage } from "./usePage";
 
 function App() {
   const [message, setMessage] = useState("");
-  const [tableData, setTable] = useState([]);
+
+  const {
+    data,
+    isLoading,
+    pagination: { current, pageSize, total },
+    onChange,
+  } = usePage({
+    service: async (cur, size) => {
+      const result = await getTableList(cur, size);
+      console.log("result", result);
+      return result;
+    },
+  });
 
   const queryListHandle = async (page) => {
-    await sleep(4000);
-
     setMessage("正在抓取第" + page + "页，数据列表");
-
+    await sleep(4000);
     const resp = await sendMessage("GET_LIST", "");
 
     const [, ...resultData] = resp.data;
-
-    let bdiListStorage = (await getItem("bdiList")) || {};
-    bdiListStorage = coverMap(resultData, bdiListStorage);
-
-    const tableCol = convertList(bdiListStorage);
-    setTable(tableCol);
-    console.log("bdiListStorage====", bdiListStorage);
-    await setItem("bdiList", bdiListStorage);
+    await batchSave(resultData);
+    onChange(current, pageSize);
 
     setMessage("抓取第" + page + "页, 完成！！");
     if (page >= 3) {
@@ -41,15 +56,8 @@ function App() {
     return queryListHandle(page);
   };
 
-  const findFirstEmptyContent = async () => {
-    let bdiListStorage = (await getItem("bdiList")) || {};
-    const tableCol = convertList(bdiListStorage);
-    const firstContent = tableCol.find((item) => item.content === "");
-    return firstContent;
-  };
-
   const getDetailInfo = async () => {
-    const firstContent = await findFirstEmptyContent();
+    const firstContent = await findFirsContentEmpty();
     if (firstContent) {
       await chrome.tabs.create({
         url: firstContent.originalLink,
@@ -57,57 +65,56 @@ function App() {
     }
   };
 
-  /**
-   * 展示数据
-   */
-  const initShowData = async () => {
-    console.log("extend init");
-    let bdiListStorage = (await getItem("bdiList")) || {};
-    const tableCol = convertList(bdiListStorage);
-    setTable(tableCol);
-  };
-
   const clearData = async () => {
     await clear();
-    initShowData();
+    await onChange(current, pageSize);
     Message.success("清除成功");
   };
 
   const onMessageByGetContentCallback = async (payload) => {
     const { data, tabId } = payload;
     const { bidLink, content } = data;
-    let bdiListStorage = (await getItem("bdiList")) || {};
-    bdiListStorage[bidLink].content = content;
-    await setItem("bdiList", bdiListStorage);
-    initShowData();
+
+    await updatedContentByLink(bidLink, content);
+
+    await onChange(current, pageSize);
     await sleep(1000);
     await chrome.tabs.remove(tabId);
     getDetailInfo();
   };
 
   useEffect(() => {
-    initShowData();
     onMessageByGetContent(onMessageByGetContentCallback);
   }, []);
 
+  const exportData = () => {};
+
   return (
     <>
-      <div>
-        {message ? <Alert message={message} type="success" /> : null}
+      {message ? <Alert message={message} type="success" /> : null}
+      <Card title="数据抓取插件">
         <Button
           onClick={() => {
             queryListHandle(1);
           }}
+          size="small"
         >
           抓取列表
         </Button>
-        <Button onClick={getDetailInfo}>抓取详情数据</Button>
-        <Button onClick={clearData} danger>
+        <Button onClick={getDetailInfo} size="small">
+          抓取详情数据
+        </Button>
+        <Button onClick={clearData} danger size="small">
           清除数据
         </Button>
-      </div>
+        <Button onClick={exportData} type="primary" size="small">
+          导出数据
+        </Button>
+      </Card>
       <Table
-        dataSource={tableData}
+        title={() => "数据列表"}
+        isLoading={isLoading}
+        dataSource={data}
         columns={[
           {
             title: "招标公告名称",
@@ -128,6 +135,17 @@ function App() {
             },
           },
         ]}
+        pagination={{
+          current,
+          pageSize,
+          total,
+          onChange: onChange,
+          onShowSizeChange: onChange,
+          showTotal: (total) => {
+            return `共 ${total} 记录`;
+          },
+          position: ["topCenter"],
+        }}
         rowKey={"originalLink"}
         scroll={{ x: 400 }}
       />

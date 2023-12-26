@@ -1,3 +1,5 @@
+import { iterate, getItem, setItem, length } from "localforage";
+
 /**
  *  Send message to content script
  * @param {*} action
@@ -32,21 +34,6 @@ export const sleep = (timeout) => {
   });
 };
 
-export const coverMap = (respData, storageMaps = {}) => {
-  respData.forEach((item) => {
-    storageMaps[item[0]] = {
-      originalLink: item[0],
-      bidName: item[1],
-      industry: item[2],
-      sourceChannel: item[3],
-      releaseTime: item[4],
-      leftBidOpenTime: item[5],
-      content: "",
-    };
-  });
-  return storageMaps;
-};
-
 export const onMessageByGetContent = (callback) => {
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const { action, payload } = request;
@@ -62,8 +49,71 @@ export const onMessageByGetContent = (callback) => {
   });
 };
 
-export const convertList = (respData = {}) => {
-  return Object.keys(respData).map((key) => {
-    return { ...respData[key] };
+export const getTableList = async (current = 1, pageSize = 20) => {
+  let data = [];
+  const total = await length();
+  const offset = (current - 1) * pageSize;
+  const maxIndex = total - 1;
+  const endOffset = offset + pageSize;
+  const eOffset = endOffset > maxIndex ? maxIndex : endOffset;
+  await iterate((value, key, index) => {
+    if (index > offset && index <= eOffset) {
+      data.push(value);
+    }
+    if (index > eOffset) {
+      return [value, key];
+    }
   });
+
+  return {
+    current,
+    pageSize,
+    data,
+    total,
+  };
+};
+
+export const updatedContentByLink = async (link, content) => {
+  const currentItem = await getItem(link);
+
+  return setItem(link, {
+    ...currentItem,
+    content,
+  }).then(() => {
+    console.log("[updatedContentByLink] update data success");
+  });
+};
+
+export const findFirsContentEmpty = async () => {
+  return iterate((value, key) => {
+    if (!value.content) {
+      return value;
+    }
+  });
+};
+
+export const getAllData = () => {
+  return iterate((value) => {
+    return value;
+  });
+};
+
+export const batchSave = async (resultData) => {
+  if (Array.isArray(resultData) && resultData.length > 0) {
+    const batchSave = resultData.map((item) => {
+      const key = item[0];
+      return setItem(key, {
+        originalLink: item[0],
+        bidName: item[1],
+        industry: item[2],
+        sourceChannel: item[3],
+        releaseTime: item[4],
+        leftBidOpenTime: item[5],
+        content: "",
+      });
+    });
+    console.log("批量保存成功");
+    return Promise.all(batchSave);
+  }
+  return Promise.resolve();
 };
