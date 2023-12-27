@@ -32,7 +32,7 @@ function App() {
   const stopListFlagRef = useRef(false);
   const stopDetailFlagRef = useRef(false);
   const [isQueryDetail, setIsQueryDetail] = useState(false);
-  const continuePageRef = useRef(1);
+  const [continuePage, setContinuePage] = useState(1);
   const [area, setArea] = useState();
 
   const {
@@ -49,7 +49,7 @@ function App() {
   });
 
   const queryListHandle = async (page = 1) => {
-    continuePageRef.current = page;
+    setContinuePage(page);
     setAlertInfo("正在抓取第" + page + "页，数据列表");
     await sleep(5000);
     const resp = await sendMessage("GET_LIST", "");
@@ -114,7 +114,7 @@ function App() {
   };
 
   const onInputNumberChange = (value) => {
-    continuePageRef.current = value;
+    setContinuePage(value);
   };
 
   const handleChange = (value) => {
@@ -144,7 +144,11 @@ function App() {
         />
         <div>
           抓取页数
-          <InputNumber onChange={onInputNumberChange} size="small" />
+          <InputNumber
+            onChange={onInputNumberChange}
+            size="small"
+            value={continuePage}
+          />
         </div>
       </Space>
     );
@@ -171,7 +175,7 @@ function App() {
             onClick={() => {
               setIsQueryList(true);
               stopListFlagRef.current = false;
-              queryListHandle(continuePageRef.current);
+              queryListHandle(continuePage);
             }}
             size="small"
           >

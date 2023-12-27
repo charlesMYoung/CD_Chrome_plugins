@@ -14,7 +14,7 @@
     }
   ],
   "action": {
-    "default_title": "click open panel",
+    "default_title": "标书抓取器",
     "default_icon": "icon.png"
   },
   "side_panel": {
