@@ -31,8 +31,8 @@ function App() {
   const stopListFlagRef = useRef(false);
   const stopDetailFlagRef = useRef(false);
   const [isQueryDetail, setIsQueryDetail] = useState(false);
-  const continuePageRef = useRef();
-  const areaRef = useRef(void 0);
+  const continuePageRef = useRef(1);
+  const [area, setArea] = useState();
 
   const {
     data,
@@ -47,12 +47,11 @@ function App() {
     },
   });
 
-  const queryListHandle = async (page) => {
+  const queryListHandle = async (page = 1) => {
     continuePageRef.current = page;
     setAlertInfo("正在抓取第" + page + "页，数据列表");
-    await sleep(4000);
+    await sleep(5000);
     const resp = await sendMessage("GET_LIST", "");
-
     const [, ...resultData] = resp.data;
     await batchSave(resultData);
     onChange(current, pageSize);
@@ -63,7 +62,7 @@ function App() {
     page = page + 1;
     await sendMessage("JUMP_PAGE", {
       page,
-      area: areaRef.current,
+      area,
     });
     setAlertInfo("跳转到" + page + "页");
     return queryListHandle(page);
@@ -118,16 +117,22 @@ function App() {
   };
 
   const handleChange = (value) => {
-    areaRef.current = value;
+    setArea(value);
   };
 
   const CardTitle = () => {
     return (
-      <div>
+      <div
+        style={{
+          display: "flex",
+        }}
+      >
         地区
         <Select
+          style={{ width: 80 }}
           onChange={handleChange}
-          defaultValue="0"
+          defaultValue={""}
+          value={area}
           options={AreaList}
           size="small"
         />
@@ -208,8 +213,8 @@ function App() {
             width: 100,
             render: (data) => {
               return data ? (
-                data === "未解析到..." ? (
-                  <Tag color="warning">未解析到...</Tag>
+                data === "抓取失败" ? (
+                  <Tag color="warning">抓取失败</Tag>
                 ) : (
                   <Tag color="green">有</Tag>
                 )

@@ -128,12 +128,21 @@ const sleep = (timeout) => {
 };
 
 const getPDFContent = () => {
+  let pdfContent = "";
   try {
     const pdf_obj = iframeContent().getElementById("viewer");
-    return pdf_obj.getElementsByClassName("textLayer")[0].innerText;
+    const textLayers = pdf_obj.getElementsByClassName("textLayer");
+
+    if (textLayers && textLayers.length > 0) {
+      for (const item of textLayers) {
+        pdfContent += item.innerText;
+      }
+    }
+
+    return pdfContent;
   } catch (e) {}
 
-  return "";
+  return pdfContent;
 };
 
 const getPdfTotal = () => {
@@ -181,10 +190,10 @@ const clickPdfNextPage = async (clickClout) => {
  * @returns
  */
 const getContent = (isEmpty) => {
-  const content = getPDFContent() || "未解析到...";
+  const content = getPDFContent() || "抓取失败";
   return {
     bidLink: getUrl(),
-    content: !isEmpty ? content : "未解析到...",
+    content: !isEmpty ? content : "抓取失败",
   };
 };
 
@@ -228,7 +237,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       const { page, area } = payload;
       clickPaginationNext({
         page,
-        area,
+        area: area || "",
       });
       sendResponse({
         message: "success",
@@ -244,7 +253,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         let data = {};
         if (isSuccess) {
           await clickPdfNextPage(1);
-          await sleep(2000);
+          await sleep(4000);
           data = getContent();
         } else {
           await sleep(2000);

@@ -122,7 +122,7 @@ export const batchSave = async (resultData) => {
 };
 
 export const AreaList = [
-  { label: "默认", value: void 0 },
+  { label: "默认", value: "" },
   { label: "北京", value: 110000 },
   { label: "天津", value: 120000 },
   { label: "河北", value: 130000 },
