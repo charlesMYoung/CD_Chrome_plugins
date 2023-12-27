@@ -35,6 +35,11 @@ function App() {
   const [continuePage, setContinuePage] = useState(1);
   const [area, setArea] = useState();
 
+  const paginationRef = useRef({
+    current: 1,
+    pageSize: 20,
+  });
+
   const {
     data,
     isLoading,
@@ -55,7 +60,7 @@ function App() {
     const resp = await sendMessage("GET_LIST", "");
     const [, ...resultData] = resp.data;
     await batchSave(resultData);
-    onChange(current, pageSize);
+    onChange(paginationRef.current.current, paginationRef.current.pageSize);
     setAlertInfo("抓取第" + page + "页, 完成！！");
     if (stopListFlagRef.current || page >= 500) {
       return;
@@ -94,7 +99,7 @@ function App() {
 
     await updatedContentByLink(bidLink, content);
 
-    await onChange(current, pageSize);
+    onChange(paginationRef.current.current, paginationRef.current.pageSize);
     await sleep(2000);
 
     if (!stopDetailFlagRef.current) {
@@ -152,6 +157,12 @@ function App() {
         </div>
       </Space>
     );
+  };
+
+  const paginationHandle = (cur, size) => {
+    paginationRef.current.pageSize = size;
+    paginationRef.current.current = cur;
+    onChange(cur, size);
   };
 
   return (
@@ -255,8 +266,8 @@ function App() {
           current,
           pageSize,
           total,
-          onChange: onChange,
-          onShowSizeChange: onChange,
+          onChange: paginationHandle,
+          onShowSizeChange: paginationHandle,
           showTotal: (total) => {
             return `共 ${total} 记录`;
           },
