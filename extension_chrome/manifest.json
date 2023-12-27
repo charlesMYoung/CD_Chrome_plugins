@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "fetch XXXX",
-  "description": "fetch data",
+  "name": "标书抓取器",
+  "description": "标书抓取器",
   "version": "1.0",
   "content_scripts": [
     {

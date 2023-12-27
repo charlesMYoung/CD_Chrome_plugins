@@ -85,14 +85,13 @@ const targetDetail = async (htmlUrl) => {
   document.getElementById("iframe").src = url;
 };
 
-const clickPaginationNext = (pageNumber) => {
-  console.log("clickPaginationNext>>>>", pageNumber);
-
+const clickPaginationNext = ({ page, area }) => {
   const queryUrl = getQueryListUrl({
     dates: 300,
     categoryId: 88,
     showStatus: 1,
-    page: pageNumber,
+    page,
+    area,
   });
 
   document.getElementById("iframe").src = queryUrl;
@@ -181,34 +180,33 @@ const clickPdfNextPage = async (clickClout) => {
  * 获取内容
  * @returns
  */
-const getContent = () => {
+const getContent = (isEmpty) => {
   const content = getPDFContent() || "未解析到...";
   return {
     bidLink: getUrl(),
-    content,
+    content: !isEmpty ? content : "未解析到...",
   };
 };
 
 let checkPDFTimeId = null;
-const checkPDF = (callback) => {
-  const iframeWindow = document.getElementById("iframe").contentWindow;
-  console.log("window.PDFViewerApplication", window.PDFViewerApplication);
-  console.log(
-    "iframeWindow.PDFViewerApplication",
-    iframeWindow.PDFViewerApplication
-  );
-  if (
-    !iframeWindow.PDFViewerApplication ||
-    iframeWindow.PDFViewerApplication.pdfDocument == null
-  ) {
+const checkPDF = (callback, checkCount = 1) => {
+  const pdf_obj = iframeContent().getElementById("viewer");
+  const pdfContent = pdf_obj.getElementsByClassName("textLayer")[0];
+  if (!pdfContent) {
     console.info("Loading...");
+    //检测10次，10次没有结果,就强制退出
+    if (checkCount > 10) {
+      clearTimeout(checkPDFTimeId);
+      callback && callback(false);
+      return;
+    }
     checkPDFTimeId = setTimeout(() => {
-      checkPDF();
+      checkCount = checkCount + 1;
+      checkPDF(callback, checkCount);
     }, 1000);
   } else {
     clearTimeout(checkPDFTimeId);
-    console.info("Load Success...");
-    callback && callback();
+    callback && callback(true);
   }
 };
 
@@ -227,8 +225,11 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       });
       break;
     case "JUMP_PAGE":
-      const pageNumber = payload;
-      clickPaginationNext(pageNumber);
+      const { page, area } = payload;
+      clickPaginationNext({
+        page,
+        area,
+      });
       sendResponse({
         message: "success",
         data: action,
@@ -239,15 +240,24 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     case "JUMP_DETAIL":
       await targetDetail(payload);
       await sleep(2000);
-      checkPDF(async () => {
-        await clickPdfNextPage(1);
-        await sleep(2000);
-        const data = getContent();
+      checkPDF(async (isSuccess) => {
+        let data = {};
+        if (isSuccess) {
+          await clickPdfNextPage(1);
+          await sleep(2000);
+          data = getContent();
+        } else {
+          await sleep(2000);
+          data = getContent(true);
+        }
+
         chrome.runtime.sendMessage({
           action: "GET_CONTENT_DONE",
           payload: {
-            tabId: payload,
-            data,
+            data: {
+              ...data,
+              bidLink: payload,
+            },
           },
         });
       });

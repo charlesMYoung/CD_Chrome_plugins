@@ -1,6 +1,15 @@
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
-import { Button, Table, message, Alert, Tag, Card } from "antd";
+import {
+  Button,
+  Table,
+  message,
+  Alert,
+  Tag,
+  Card,
+  InputNumber,
+  Select,
+} from "antd";
 import {
   sendMessage,
   sleep,
@@ -10,6 +19,7 @@ import {
   updatedContentByLink,
   findFirsContentEmpty,
   getAllData,
+  AreaList,
 } from "./utils";
 import { exportTableData } from "./sheet";
 import { clear } from "localforage";
@@ -21,6 +31,8 @@ function App() {
   const stopListFlagRef = useRef(false);
   const stopDetailFlagRef = useRef(false);
   const [isQueryDetail, setIsQueryDetail] = useState(false);
+  const continuePageRef = useRef();
+  const areaRef = useRef(void 0);
 
   const {
     data,
@@ -36,6 +48,7 @@ function App() {
   });
 
   const queryListHandle = async (page) => {
+    continuePageRef.current = page;
     setAlertInfo("正在抓取第" + page + "页，数据列表");
     await sleep(4000);
     const resp = await sendMessage("GET_LIST", "");
@@ -48,7 +61,10 @@ function App() {
       return;
     }
     page = page + 1;
-    await sendMessage("JUMP_PAGE", page);
+    await sendMessage("JUMP_PAGE", {
+      page,
+      area: areaRef.current,
+    });
     setAlertInfo("跳转到" + page + "页");
     return queryListHandle(page);
   };
@@ -97,10 +113,38 @@ function App() {
     exportTableData(data);
   };
 
+  const onInputNumberChange = (value) => {
+    continuePageRef.current = value;
+  };
+
+  const handleChange = (value) => {
+    areaRef.current = value;
+  };
+
+  const CardTitle = () => {
+    return (
+      <div>
+        地区
+        <Select
+          onChange={handleChange}
+          defaultValue="0"
+          options={AreaList}
+          size="small"
+        />
+        <div>
+          页数
+          <InputNumber onChange={onInputNumberChange} size="small" />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
-      {alertInfo ? <Alert message={alertInfo} type="success" /> : null}
-      <Card title="数据抓取插件">
+      {alertInfo ? (
+        <Alert message={alertInfo} type="success" closable banner />
+      ) : null}
+      <Card title={<CardTitle></CardTitle>}>
         {isQueryList ? (
           <Button
             onClick={() => {
@@ -116,7 +160,7 @@ function App() {
             onClick={() => {
               setIsQueryList(true);
               stopListFlagRef.current = false;
-              queryListHandle(1);
+              queryListHandle(continuePageRef.current);
             }}
             size="small"
           >
@@ -164,13 +208,11 @@ function App() {
             width: 100,
             render: (data) => {
               return data ? (
-                <>
-                  {data === "未解析到..." ? (
-                    <Tag color="warning">未解析到...</Tag>
-                  ) : (
-                    <Tag color="green">有</Tag>
-                  )}
-                </>
+                data === "未解析到..." ? (
+                  <Tag color="warning">未解析到...</Tag>
+                ) : (
+                  <Tag color="green">有</Tag>
+                )
               ) : (
                 <Tag color="magenta">无</Tag>
               );
