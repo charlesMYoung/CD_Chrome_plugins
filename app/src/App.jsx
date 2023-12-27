@@ -9,6 +9,7 @@ import {
   Card,
   InputNumber,
   Select,
+  Space,
 } from "antd";
 import {
   sendMessage,
@@ -120,14 +121,19 @@ function App() {
     setArea(value);
   };
 
+  const openHomePage = () => {
+    chrome.tabs.create({
+      url: "https://bulletin.cebpubservice.com/",
+    });
+  };
+
   const CardTitle = () => {
     return (
-      <div
-        style={{
-          display: "flex",
-        }}
-      >
-        地区
+      <Space>
+        <Button type="link" onClick={openHomePage}>
+          打开页面
+        </Button>
+        抓取地区
         <Select
           style={{ width: 80 }}
           onChange={handleChange}
@@ -137,10 +143,10 @@ function App() {
           size="small"
         />
         <div>
-          页数
+          抓取页数
           <InputNumber onChange={onInputNumberChange} size="small" />
         </div>
-      </div>
+      </Space>
     );
   };
 

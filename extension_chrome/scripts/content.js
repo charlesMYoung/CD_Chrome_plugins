@@ -32,12 +32,17 @@ function decryptByDES(ciphertext, key) {
   return decrypted.toString(CryptoJS.enc.Utf8);
 }
 
-// https://bulletin.cebpubservice.com/details/permission/getSecretKey   post 获取加密数据
-// 然后解密 密钥： Ctpsp@884*
-// 成为data 对象
-// detail_id = $('.mian_list_03').attr("index")//公告id
-// detail_pdf_url = https://bulletin.cebpubservice.com/details/bulletin/getBulletin/"+data.data+"/"+detail_id
-// https://bulletin.cebpubservice.com/resource/ceb/js/pdfjs-dist/web/viewer.html?file="+detail_pdf_url   // 最终地址
+/**
+ * 详情页面获取PDF地址流程
+ * 1. https://bulletin.cebpubservice.com/details/permission/getSecretKey   post 获取加密数据
+ * 2. 然后解密 密钥： Ctpsp@884*
+ * 3. 成为data 对象
+ * 4. detail_id = $('.mian_list_03').attr("index")//公告id
+ * 5. detail_pdf_url = https://bulletin.cebpubservice.com/details/bulletin/getBulletin/"+data.data+"/"+detail_id
+ * 6. https://bulletin.cebpubservice.com/resource/ceb/js/pdfjs-dist/web/viewer.html?file="+detail_pdf_url   // 最终地址
+ * @param {*} detailHTMLUrl
+ * @returns
+ */
 const getDetailUrl = async (detailHTMLUrl) => {
   const key = "Ctpsp@884*";
   const secureKey = await fetch(
@@ -140,11 +145,35 @@ const getPDFContent = () => {
     }
 
     return pdfContent;
-  } catch (e) {}
+  } catch (e) {
+    console.error("加载pdf容器失败", e);
+  }
 
   return pdfContent;
 };
 
+const checkPDFContent = async (checkCount = 1) => {
+  return new Promise((resolve) => {
+    let pdfContent = getPDFContent();
+    resolve(pdfContent);
+  }).then((item) => {
+    console.log("[checkPDFContent]  check pdf content count" + checkCount);
+    if (checkCount > 7) {
+      return Promise.resolve("");
+    }
+    if (item) {
+      console.log("[checkPDFContent]  check pdf content success");
+      return Promise.resolve(item);
+    }
+    checkCount = checkCount + 1;
+    return sleep(1500).then(() => checkPDFContent(checkCount));
+  });
+};
+
+/**
+ *  获取pdf总页数
+ * @returns
+ */
 const getPdfTotal = () => {
   const numPagesDom = iframeContent().getElementById("numPages");
 
@@ -160,7 +189,7 @@ const getPdfTotal = () => {
 };
 
 /**
- *
+ * 点击下一页
  * @param {*} clickClout
  * @returns
  */
@@ -186,17 +215,10 @@ const clickPdfNextPage = async (clickClout) => {
 };
 
 /**
- * 获取内容
+ * 检测pdf是否加载完成
+ * @param {*} callback
  * @returns
  */
-const getContent = (isEmpty) => {
-  const content = getPDFContent() || "抓取失败";
-  return {
-    bidLink: getUrl(),
-    content: !isEmpty ? content : "抓取失败",
-  };
-};
-
 let checkPDFTimeId = null;
 const checkPDF = (callback, checkCount = 1) => {
   const pdf_obj = iframeContent().getElementById("viewer");
@@ -219,7 +241,13 @@ const checkPDF = (callback, checkCount = 1) => {
   }
 };
 
-//监听列表
+/**
+ * 监听消息
+ * @param {*} request
+ * @param {*} sender
+ * @param {*} sendResponse
+ * @returns
+ */
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   const { action, payload } = request;
   console.log("%c Line:4 🥔 action, payload", "color:#b03734", action, payload);
@@ -250,23 +278,21 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       await targetDetail(payload);
       await sleep(2000);
       checkPDF(async (isSuccess) => {
-        let data = {};
+        let data = {
+          bidLink: payload,
+        };
         if (isSuccess) {
           await clickPdfNextPage(1);
-          await sleep(4000);
-          data = getContent();
+          data.content = (await checkPDFContent()) || "抓取失败";
         } else {
           await sleep(2000);
-          data = getContent(true);
+          data.content = "抓取失败";
         }
 
         chrome.runtime.sendMessage({
           action: "GET_CONTENT_DONE",
           payload: {
-            data: {
-              ...data,
-              bidLink: payload,
-            },
+            data,
           },
         });
       });
