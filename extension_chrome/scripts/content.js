@@ -124,14 +124,6 @@ const getTableList = (browserRootDom) => {
   return tableContent;
 };
 
-const sleep = (timeout) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, timeout);
-  });
-};
-
 const getPDFContent = () => {
   let pdfContent = "";
   try {
@@ -276,7 +268,9 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 
     case "JUMP_DETAIL":
       await targetDetail(payload);
-      await sleep(2000);
+
+      const config = await getConfig();
+      await sleep(config.detailDelayTime * 1000);
       checkPDF(async (isSuccess) => {
         let data = {
           bidLink: payload,

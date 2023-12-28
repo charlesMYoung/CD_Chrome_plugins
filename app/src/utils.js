@@ -11,8 +11,8 @@ export const sendMessage = async (action, payload) => {
     active: true,
     currentWindow: true,
   });
-  return new Promise((resolve, reject) => {
-    chrome.tabs.sendMessage(
+  return new Promise((resolve) => {
+    window.chrome.tabs.sendMessage(
       tab.id,
       {
         action,
@@ -35,7 +35,8 @@ export const sleep = (timeout) => {
 };
 
 export const onMessageByGetContent = (callback) => {
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // eslint-disable-next-line no-undef
+  chrome?.runtime?.onMessage?.addListener((request) => {
     const { action, payload } = request;
     switch (action) {
       case "GET_CONTENT_DONE":
@@ -85,7 +86,7 @@ export const updatedContentByLink = async (link, content) => {
 };
 
 export const findFirsContentEmpty = async () => {
-  return iterate((value, key) => {
+  return iterate((value) => {
     if (!value.content) {
       return value;
     }
@@ -156,3 +157,37 @@ export const AreaList = [
   { label: "重庆", value: 500000 },
   { label: "西藏", value: 540000 },
 ];
+
+export const getChromeStorage = async (key) => {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(key, (result) => {
+      console.log("getChromeStorage", result);
+      if (!result[key]) {
+        return resolve(null);
+      }
+      resolve(result[key]);
+    });
+  });
+};
+
+export const setChromeStorage = async (key, value) => {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [key]: value }, (result) => {
+      console.log("setChromeStorage", result);
+      resolve();
+    });
+  });
+};
+
+export const getConfig = async () => {
+  const config = await getChromeStorage("config");
+  if (!config) {
+    console.warn("config is not on storage, will use default config");
+    return {
+      homeUrl: "https://bulletin.cebpubservice.com/",
+      listDelayTime: 4,
+      detailDelayTime: 4,
+    };
+  }
+  return config;
+};

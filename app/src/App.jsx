@@ -1,16 +1,10 @@
-import "./App.css";
 import { useEffect, useRef, useState } from "react";
-import {
-  Button,
-  Table,
-  message,
-  Alert,
-  Tag,
-  Card,
-  InputNumber,
-  Select,
-  Space,
-} from "antd";
+
+import { Table, message, Tag, Layout, Menu } from "antd";
+import { SettingOutlined } from "@ant-design/icons";
+import { Tools } from "./components/tool";
+import { Settings } from "./components/settings";
+import { ActionTool } from "./components/actionTool";
 import {
   sendMessage,
   sleep,
@@ -20,20 +14,27 @@ import {
   updatedContentByLink,
   findFirsContentEmpty,
   getAllData,
-  AreaList,
+  getConfig,
+  setChromeStorage,
 } from "./utils";
 import { exportTableData } from "./sheet";
 import { clear } from "localforage";
 import { usePage } from "./usePage";
+import { Alert } from "antd";
+const { Header, Content } = Layout;
 
 function App() {
   const [alertInfo, setAlertInfo] = useState("");
-  const [isQueryList, setIsQueryList] = useState(false);
   const stopListFlagRef = useRef(false);
   const stopDetailFlagRef = useRef(false);
-  const [isQueryDetail, setIsQueryDetail] = useState(false);
   const [continuePage, setContinuePage] = useState(1);
   const [area, setArea] = useState();
+  const [isSettingOpen, setIsSettingOpen] = useState(false);
+  const [historySetting, setHistorySetting] = useState({
+    homeUrl: "https://bulletin.cebpubservice.com/",
+    listDelayTime: 4,
+    detailDelayTime: 4,
+  });
 
   const paginationRef = useRef({
     current: 1,
@@ -48,19 +49,24 @@ function App() {
   } = usePage({
     service: async (cur, size) => {
       const result = await getTableList(cur, size);
-      console.log("result", result);
+      console.log("result", JSON.stringify(result.data));
       return result;
     },
   });
 
+  const refreshTable = () => {
+    onChange(paginationRef.current.current, paginationRef.current.pageSize);
+  };
+
   const queryListHandle = async (page = 1) => {
     setContinuePage(page);
     setAlertInfo("正在抓取第" + page + "页，数据列表");
-    await sleep(5000);
+    const { listDelayTime } = await getConfig();
+    await sleep(listDelayTime * 1000);
     const resp = await sendMessage("GET_LIST", "");
     const [, ...resultData] = resp.data;
     await batchSave(resultData);
-    onChange(paginationRef.current.current, paginationRef.current.pageSize);
+    refreshTable();
     setAlertInfo("抓取第" + page + "页, 完成！！");
     if (stopListFlagRef.current || page >= 500) {
       return;
@@ -74,9 +80,8 @@ function App() {
     return queryListHandle(page);
   };
 
-  const openEmptyContentDetail = async () => {
+  const beginCatchDetailData = async () => {
     stopDetailFlagRef.current = false;
-    setIsQueryDetail(true);
     const firstContent = await findFirsContentEmpty();
     if (firstContent) {
       const result = await sendMessage(
@@ -99,11 +104,11 @@ function App() {
 
     await updatedContentByLink(bidLink, content);
 
-    onChange(paginationRef.current.current, paginationRef.current.pageSize);
+    refreshTable();
     await sleep(2000);
 
     if (!stopDetailFlagRef.current) {
-      openEmptyContentDetail();
+      beginCatchDetailData();
     }
   };
 
@@ -118,45 +123,21 @@ function App() {
     exportTableData(data);
   };
 
-  const onInputNumberChange = (value) => {
-    setContinuePage(value);
+  const onCatchDetail = (isCatch) => {
+    if (isCatch) {
+      stopDetailFlagRef.current = false;
+      beginCatchDetailData();
+    } else {
+      stopDetailFlagRef.current = true;
+    }
   };
-
-  const handleChange = (value) => {
-    setArea(value);
-  };
-
-  const openHomePage = () => {
-    chrome.tabs.create({
-      url: "https://bulletin.cebpubservice.com/",
-    });
-  };
-
-  const CardTitle = () => {
-    return (
-      <Space>
-        <Button type="link" onClick={openHomePage}>
-          打开页面
-        </Button>
-        抓取地区
-        <Select
-          style={{ width: 80 }}
-          onChange={handleChange}
-          defaultValue={""}
-          value={area}
-          options={AreaList}
-          size="small"
-        />
-        <div>
-          抓取页数
-          <InputNumber
-            onChange={onInputNumberChange}
-            size="small"
-            value={continuePage}
-          />
-        </div>
-      </Space>
-    );
+  const onCatchList = (isCatch) => {
+    if (isCatch) {
+      stopListFlagRef.current = false;
+      queryListHandle(continuePage);
+    } else {
+      stopListFlagRef.current = true;
+    }
   };
 
   const paginationHandle = (cur, size) => {
@@ -165,118 +146,130 @@ function App() {
     onChange(cur, size);
   };
 
+  const menuHandle = async ({ key }) => {
+    if (key === "home") {
+      const { homeUrl } = await getConfig();
+      chrome.tabs.create({
+        url: homeUrl,
+      });
+    } else if (key === "settings") {
+      setIsSettingOpen(true);
+    }
+  };
+
+  const onSettingFinishHandle = async (value) => {
+    setIsSettingOpen(false);
+    setHistorySetting(value);
+    await setChromeStorage("config", value);
+  };
+
   return (
-    <>
-      {alertInfo ? (
-        <Alert message={alertInfo} type="success" closable banner />
-      ) : null}
-      <Card title={<CardTitle></CardTitle>}>
-        {isQueryList ? (
-          <Button
-            onClick={() => {
-              setIsQueryList(false);
-              stopListFlagRef.current = true;
-            }}
-            size="small"
-          >
-            暂停抓取列表
-          </Button>
-        ) : (
-          <Button
-            onClick={() => {
-              setIsQueryList(true);
-              stopListFlagRef.current = false;
-              queryListHandle(continuePage);
-            }}
-            size="small"
-          >
-            抓取列表
-          </Button>
-        )}
-
-        {isQueryDetail ? (
-          <Button
-            onClick={() => {
-              stopDetailFlagRef.current = true;
-              setIsQueryDetail(false);
-            }}
-            size="small"
-          >
-            暂停抓取详情数据
-          </Button>
-        ) : (
-          <Button onClick={openEmptyContentDetail} size="small">
-            抓取详情数据
-          </Button>
-        )}
-
-        <Button onClick={clearData} danger size="small">
-          清除数据
-        </Button>
-        <Button onClick={exportData} type="primary" size="small">
-          导出Excel
-        </Button>
-      </Card>
-      <Table
-        title={() => "数据列表"}
-        isLoading={isLoading}
-        dataSource={data}
-        columns={[
-          {
-            title: "招标公告名称",
-            dataIndex: "bidName",
-            ellipsis: true,
-            width: 100,
-          },
-          {
-            title: "是否有内容",
-            dataIndex: "content",
-            width: 100,
-            render: (data) => {
-              return data ? (
-                data === "抓取失败" ? (
-                  <Tag color="warning">抓取失败</Tag>
+    <Layout>
+      {alertInfo && <Alert message={alertInfo} type="info" closable></Alert>}
+      <Settings
+        open={isSettingOpen}
+        onFinish={onSettingFinishHandle}
+        historySetting={historySetting}
+      ></Settings>
+      <Header style={{ display: "flex", backgroundColor: "#ffffff" }}>
+        <Menu
+          onClick={menuHandle}
+          selectable={false}
+          mode="horizontal"
+          items={[
+            {
+              label: "打开主页",
+              key: "home",
+            },
+            {
+              label: "设置",
+              key: "settings",
+              icon: <SettingOutlined />,
+            },
+          ]}
+          style={{
+            width: "100%",
+          }}
+        />
+      </Header>
+      <Content>
+        <ActionTool
+          onAreaChange={setArea}
+          onCatchDetail={onCatchDetail}
+          onCatchList={onCatchList}
+          onPageContinueChange={setContinuePage}
+          area={area}
+          continuePage={continuePage}
+        ></ActionTool>
+        <Table
+          bordered
+          title={() => (
+            <Tools
+              onExport={exportData}
+              onRefresh={refreshTable}
+              onClear={clearData}
+            ></Tools>
+          )}
+          isLoading={isLoading}
+          dataSource={data}
+          columns={[
+            {
+              title: "招标公告名称",
+              dataIndex: "bidName",
+              ellipsis: true,
+              width: 100,
+            },
+            {
+              title: "是否有内容",
+              dataIndex: "content",
+              width: 100,
+              render: (data) => {
+                return data ? (
+                  data === "抓取失败" ? (
+                    <Tag color="warning">抓取失败</Tag>
+                  ) : (
+                    <Tag color="green">有</Tag>
+                  )
                 ) : (
-                  <Tag color="green">有</Tag>
-                )
-              ) : (
-                <Tag color="magenta">无</Tag>
-              );
+                  <Tag color="magenta">无</Tag>
+                );
+              },
             },
-          },
-          {
-            title: "原文链接",
-            dataIndex: "originalLink",
-            render: (data) => {
-              return (
-                <a
-                  onClick={async () => {
-                    await chrome.tabs.create({
-                      url: data,
-                    });
-                  }}
-                >
-                  跳转
-                </a>
-              );
+            {
+              title: "原文链接",
+              dataIndex: "originalLink",
+              render: (data) => {
+                return (
+                  <a
+                    onClick={async () => {
+                      // eslint-disable-next-line no-undef
+                      await chrome.tabs.create({
+                        url: data,
+                      });
+                    }}
+                  >
+                    跳转
+                  </a>
+                );
+              },
             },
-          },
-        ]}
-        pagination={{
-          current,
-          pageSize,
-          total,
-          onChange: paginationHandle,
-          onShowSizeChange: paginationHandle,
-          showTotal: (total) => {
-            return `共 ${total} 记录`;
-          },
-          position: ["topCenter"],
-        }}
-        rowKey={"originalLink"}
-        scroll={{ x: 400 }}
-      />
-    </>
+          ]}
+          pagination={{
+            current,
+            pageSize,
+            total,
+            onChange: paginationHandle,
+            onShowSizeChange: paginationHandle,
+            showTotal: (total) => {
+              return `共 ${total} 记录`;
+            },
+            position: ["topCenter"],
+          }}
+          rowKey={"originalLink"}
+          scroll={{ x: 400 }}
+        />
+      </Content>
+    </Layout>
   );
 }
 
