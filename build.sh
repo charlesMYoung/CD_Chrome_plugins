@@ -4,7 +4,14 @@ cd app
 
 npm run build
 
-rm -rf ../extension_chrome/dist
+cd ..
 
-mv dist/ ../extension_chrome/
+cp Changelog.txt ./extension_chrome/
+
+rm -rf extension_chrome/dist
+
+mv app/dist/ extension_chrome/
+
+
+
 

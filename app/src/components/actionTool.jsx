@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { Button, Card, InputNumber, Select, Tooltip, Flex } from "antd";
 import { useState } from "react";
-import { AreaList } from "../utils";
+import { AreaList } from "../utils/utils";
 import { PauseOutlined, CaretRightOutlined } from "@ant-design/icons";
 
 export const ActionTool = ({

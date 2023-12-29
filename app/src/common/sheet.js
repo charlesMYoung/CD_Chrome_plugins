@@ -1,12 +1,11 @@
 import { utils, writeFile } from "xlsx";
+import { mainCovert } from "./matcher";
 
-/**
- * 处理内容数据
- */
-const contentCovert = (content) => {};
+// 招标人信息 代理机构信息 标的金额 获取时间 递交截止时间 递交方式 开标时间 开标地点
 
 const listToAoa = (rows) => {
   const allRows = rows.map((item) => {
+    mainCovert(item.content);
     return [
       item.bidName,
       item.originalLink,

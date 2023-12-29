@@ -16,10 +16,11 @@ import {
   getAllData,
   getConfig,
   setChromeStorage,
-} from "./utils";
-import { exportTableData } from "./sheet";
+} from "./utils/utils";
+import { exportTableData } from "./common/sheet";
 import { clear } from "localforage";
-import { usePage } from "./usePage";
+import { usePage } from "./hook/usePage";
+
 const { Header, Content } = Layout;
 
 function App() {

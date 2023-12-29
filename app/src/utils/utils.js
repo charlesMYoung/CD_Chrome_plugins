@@ -1,4 +1,5 @@
 import { iterate, getItem, setItem, length } from "localforage";
+import { data } from "../assets/mock";
 
 /**
  *  Send message to content script
@@ -94,10 +95,10 @@ export const findFirsContentEmpty = async () => {
 };
 
 export const getAllData = async () => {
-  let data = [];
-  await iterate((value) => {
-    data.push(value);
-  });
+  // let data = [];
+  // await iterate((value) => {
+  //   data.push(value);
+  // });
   return data;
 };
 
@@ -190,4 +191,24 @@ export const getConfig = async () => {
     };
   }
   return config;
+};
+
+/**
+ *
+ * @param {string} text
+ * @param {object} patterMap
+ * @returns
+ */
+export const getMatchers = (text, patterMap = {}) => {
+  if (!text) {
+    return [];
+  }
+  for (const key in patterMap) {
+    if (Object.hasOwnProperty.call(patterMap, key)) {
+      const curPattern = patterMap[key];
+      if (curPattern.test(text)) {
+        return text.match(curPattern);
+      }
+    }
+  }
 };
