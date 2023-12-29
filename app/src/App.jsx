@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Table, message, Tag, Layout, Menu } from "antd";
+import { Table, message, Layout, Menu, Badge, Alert } from "antd";
 import { SettingOutlined } from "@ant-design/icons";
 import { Tools } from "./components/tool";
 import { Settings } from "./components/settings";
@@ -20,7 +20,6 @@ import {
 import { exportTableData } from "./sheet";
 import { clear } from "localforage";
 import { usePage } from "./usePage";
-import { Alert } from "antd";
 const { Header, Content } = Layout;
 
 function App() {
@@ -49,7 +48,7 @@ function App() {
   } = usePage({
     service: async (cur, size) => {
       const result = await getTableList(cur, size);
-      console.log("result", JSON.stringify(result.data));
+      console.log("result", result);
       return result;
     },
   });
@@ -83,7 +82,10 @@ function App() {
   const beginCatchDetailData = async () => {
     stopDetailFlagRef.current = false;
     const firstContent = await findFirsContentEmpty();
+
     if (firstContent) {
+      await updatedContentByLink(firstContent.originalLink, "LOADING");
+      refreshTable();
       const result = await sendMessage(
         "JUMP_DETAIL",
         firstContent.originalLink
@@ -220,19 +222,19 @@ function App() {
               width: 100,
             },
             {
-              title: "是否有内容",
+              title: "详情状态",
               dataIndex: "content",
               width: 100,
               render: (data) => {
-                return data ? (
-                  data === "抓取失败" ? (
-                    <Tag color="warning">抓取失败</Tag>
-                  ) : (
-                    <Tag color="green">有</Tag>
-                  )
-                ) : (
-                  <Tag color="magenta">无</Tag>
-                );
+                if (!data) {
+                  return <Badge status="default" text="未抓取"></Badge>;
+                } else if (data === "抓取失败") {
+                  return <Badge status="error" text="抓取失败"></Badge>;
+                } else if (data === "LOADING") {
+                  return <Badge status="processing" text="抓取中..."></Badge>;
+                } else {
+                  return <Badge status="success" text="抓取成功"></Badge>;
+                }
               },
             },
             {

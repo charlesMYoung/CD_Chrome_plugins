@@ -42,7 +42,7 @@ export const ActionTool = ({
         margin: "6px 0",
       }}
     >
-      <Flex gap={"middle"}>
+      <Flex gap={"middle"} wrap="wrap">
         {isQueryList ? (
           <Tooltip title="暂停抓取列表">
             <Button
@@ -87,23 +87,27 @@ export const ActionTool = ({
           </Tooltip>
         )}
         <Flex gap={"middle"}>
-          地区:
-          <Select
-            style={{ width: 80 }}
-            onChange={onAreaChange}
-            defaultValue={""}
-            value={area}
-            options={AreaList}
-            size="small"
-          />
-          <Flex>
-            页数:
-            <InputNumber
-              min={1}
-              onChange={onPageContinueChange}
+          <Flex gap={"small"}>
+            地区:
+            <Select
+              style={{ width: 80 }}
+              onChange={onAreaChange}
+              defaultValue={""}
+              value={area}
+              options={AreaList}
               size="small"
-              value={continuePage}
             />
+          </Flex>
+          <Flex>
+            <Flex gap={"small"}>
+              页数:
+              <InputNumber
+                min={1}
+                onChange={onPageContinueChange}
+                size="small"
+                value={continuePage}
+              />
+            </Flex>
           </Flex>
         </Flex>
       </Flex>
