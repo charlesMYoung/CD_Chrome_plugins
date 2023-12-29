@@ -87,7 +87,7 @@ export const updatedContentByLink = async (link, content) => {
 
 export const findFirsContentEmpty = async () => {
   return iterate((value) => {
-    if (!value.content) {
+    if (!value.content || value.content === "LOADING") {
       return value;
     }
   });
