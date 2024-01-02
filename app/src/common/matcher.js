@@ -3,9 +3,10 @@ import {
   STYLE_PATTER_MAP,
   TENDERER_PATTER_MAP,
   TENDERER_AGENT_PATTER_MAP,
-  TENDER_TIME,
+  GET_TENDER_TIME,
   BID_OPEN_TIME,
   DEAD_TENDER_TIME,
+  GET_TENDER_TYPE,
   BID_OPEN_ADDRESS,
 } from "./constants";
 
@@ -46,7 +47,7 @@ export const interceptKeyWord = (text, interceptType) => {
       }
       return "";
     case "tenderTime":
-      match = getMatchers(text, TENDER_TIME) || [];
+      match = getMatchers(text, GET_TENDER_TIME) || [];
       if (match && match[1]) {
         return match[1].trim();
       }
@@ -70,16 +71,29 @@ export const interceptKeyWord = (text, interceptType) => {
         return match[1].trim();
       }
       return "";
+    case "getTenderType":
+      match = getMatchers(text, GET_TENDER_TYPE) || [];
+      console.log("match", match);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+      return "";
     default:
       return "";
   }
 };
 
 export const getTenderInfoStr = (terInfoStyle) => {
+  if (!terInfoStyle.user && terInfoStyle.address) {
+    return "";
+  }
   return `招标人名称：${terInfoStyle.user}\n地址:${terInfoStyle.address}\n联系电话:${terInfoStyle.phone}\n电子邮件:${terInfoStyle.email}`;
 };
 
 export const getAgentInfoStr = (agentInfoStyle) => {
+  if (!agentInfoStyle.user && agentInfoStyle.address) {
+    return "";
+  }
   return `招标代理机构名称：${agentInfoStyle.user}\n地址:${agentInfoStyle.address}\n联系电话:${agentInfoStyle.phone}\n电子邮件:${agentInfoStyle.email}`;
 };
 
@@ -97,10 +111,14 @@ export const mainCovert = (content) => {
 
   const terInfo = interceptKeyWord(fullContent, "tenderer");
   const agentInfo = interceptKeyWord(fullContent, "agent");
+
   const tenderTime = interceptKeyWord(fullContent, "tenderTime");
+  const getTenderType = interceptKeyWord(fullContent, "getTenderType");
+
   const deadTenderTime = interceptKeyWord(fullContent, "deadTenderTime");
   const bidOpenTime = interceptKeyWord(fullContent, "bidOpenTime");
   const bidOpenAddress = interceptKeyWord(fullContent, "bidOpenAddress");
+
   const terInfoStyle = getInfoFromStyle(terInfo);
   const agentInfoStyle = getInfoFromStyle(agentInfo);
   const tenderInfo4Sheet = getTenderInfoStr(terInfoStyle);
@@ -113,6 +131,7 @@ export const mainCovert = (content) => {
     terInfoStyle,
     agentInfoStyle,
     tenderTime,
+    getTenderType,
     deadTenderTime,
     bidOpenTime,
     bidOpenAddress,
@@ -122,6 +141,9 @@ export const mainCovert = (content) => {
     tenderInfo: tenderInfo4Sheet,
     tenderAgentInfo: tenderAgentInfo4Sheet,
     tenderTime,
+    deadTenderTime,
+    bidOpenTime,
+    bidOpenAddress,
   };
 
   //匹配联系方式

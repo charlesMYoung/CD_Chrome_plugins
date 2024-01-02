@@ -5,7 +5,14 @@ import { mainCovert } from "./matcher";
 
 const listToAoa = (rows) => {
   const allRows = rows.map((item) => {
-    const { tenderInfo, tenderAgentInfo } = mainCovert(item.content);
+    const {
+      tenderInfo,
+      tenderAgentInfo,
+      tenderTime,
+      deadTenderTime,
+      bidOpenTime,
+      bidOpenAddress,
+    } = mainCovert(item.content);
 
     return [
       item.bidName,
@@ -17,6 +24,10 @@ const listToAoa = (rows) => {
       item.leftBidOpenTime,
       tenderInfo,
       tenderAgentInfo,
+      tenderTime,
+      deadTenderTime,
+      bidOpenTime,
+      bidOpenAddress,
       item.content,
     ];
   });
@@ -31,6 +42,10 @@ const listToAoa = (rows) => {
     "距离开标时间",
     "招标人信息",
     "代理机构信息",
+    "获取时间",
+    "递交截止时间",
+    "开标时间",
+    "开标地点",
     "内容详情",
   ]);
   return allRows;

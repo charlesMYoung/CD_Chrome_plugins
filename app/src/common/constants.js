@@ -25,26 +25,48 @@ export const TENDERER_PATTER_MAP = {
 //截取 招标代理机构 后的信息
 export const TENDERER_AGENT_PATTER_MAP = {
   style_1:
-    /招标代理机构[:：]\s*([\s\S]*?)\s*汇款方式[:：]\s*([\s\S]*?)(?=[\n\r]|$)/i,
+    /招标代理机构[:：]\s*([\s\S]*?)\s*开户银行[:：]\s*([\s\S]*?)(?=[\n\r]|$)/i,
   style_2: /招标代理机构[:：]\s*([\s\S]*?)\s*招标人\s*([\s\S]*?)(?=[\n\r]|$)/i,
   style_3: /招标代理机构[:：]\s*([\s\S]*?)\s*邮箱\s*([\s\S]*?)(?=[\n\r]|$)/i,
+  style_4:
+    /招标代理机构[:：]\s*([\s\S]*?)\s*汇款方式[:：]\s*([\s\S]*?)(?=[\n\r]|$)/i,
 };
 
-export const TENDER_TIME = {
+/**
+ * 获取时间
+ */
+export const GET_TENDER_TIME = {
   style_1:
     /招标文件的获取获取时间[:：]\s*([\s\S]*?)\s*获取方式[:：]\s*([\s\S]*?)(?=[\n\r]|$)/i,
 };
 
+/**
+ * 获取时间
+ */
+export const GET_TENDER_TYPE = {
+  style_1:
+    /获取方式[:：]\s*([\s\S]*?)\s*[一二三四五七八九十][、]\s*([\s\S]*?)(?=[\n\r]|$)/i,
+};
+/**
+ * 递交时间
+ */
 export const DEAD_TENDER_TIME = {
   style_1:
     /投标文件的递交递交截止时间[:：]\s*([\s\S]*?)\s*递交方式[:：]\s*([\s\S]*?)(?=[\n\r]|$)/i,
 };
 
+/**
+ * 开标时间
+ */
 export const BID_OPEN_TIME = {
   style_1:
     /开标时间[:：]\s*([\s\S]*?)\s*开标地点[:：]\s*([\s\S]*?)(?=[\n\r]|$)/i,
 };
 
+/**
+ * 开标地点
+ */
 export const BID_OPEN_ADDRESS = {
-  style_1: /开标地点[:：]\s*([\s\S]*?)\s*开标室\s*([\s\S]*?)(?=[\n\r]|$)/i,
+  style_1:
+    /开标地点[:：]\s*([\s\S]*?)\s*[一二三四五七八九十开标室][、]\s*([\s\S]*?)(?=[\n\r]|$)/i,
 };
