@@ -5,7 +5,8 @@ import { mainCovert } from "./matcher";
 
 const listToAoa = (rows) => {
   const allRows = rows.map((item) => {
-    mainCovert(item.content);
+    const { tenderInfo, tenderAgentInfo } = mainCovert(item.content);
+
     return [
       item.bidName,
       item.originalLink,
@@ -14,6 +15,8 @@ const listToAoa = (rows) => {
       item.sourceChannel,
       item.releaseTime,
       item.leftBidOpenTime,
+      tenderInfo,
+      tenderAgentInfo,
       item.content,
     ];
   });
@@ -26,6 +29,8 @@ const listToAoa = (rows) => {
     "来源渠道",
     "公告发布时间",
     "距离开标时间",
+    "招标人信息",
+    "代理机构信息",
     "内容详情",
   ]);
   return allRows;
